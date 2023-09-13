@@ -1,0 +1,73 @@
+create or replace procedure sp_deploy_schema_changes()
+returns string 
+language javascript
+as
+$$
+
+// Create dimension table
+snowflake.createStatement({ sqlText: `
+    CREATE TABLE CustomerTransactions(
+CustomerTransactionID int NOT NULL,
+CustomerID int NOT NULL,
+TransactionTypeID int NOT NULL,
+InvoiceID int NULL,
+PaymentMethodID int NULL,
+TransactionDate date NOT NULL,
+AmountExcludingTax decimal(18, 2) NOT NULL,
+TaxAmount decimal(18, 2) NOT NULL,
+TransactionAmount decimal(18, 2) NOT NULL,
+OutstandingBalance decimal(18, 2) NOT NULL,
+FinalizationDate date NULL,
+IsFinalized boolean,
+LastEditedBy int NOT NULL,
+LastEditedWhen TIMESTAMP_NTZ NOT NULL
+)`}).execute();
+
+// Add column to dimension  
+snowflake.createStatement({ sqlText: `
+    ALTER TABLE CustomerTransactions 
+      ADD COLUMN birth_date DATE`}).execute();
+
+// Add dimension
+snowflake.createStatement({ sqlText: `
+    CREATE TABLE SalesCustomers(
+	CustomerID int NOT NULL,
+	CustomerName varchar(100) NOT NULL,
+	BillToCustomerID int NOT NULL,
+	CustomerCategoryID int NOT NULL,
+	BuyingGroupID int NULL,
+	PrimaryContactPersonID int NOT NULL,
+	AlternateContactPersonID int NULL,
+	DeliveryMethodID int NOT NULL,
+	DeliveryCityID int NOT NULL,
+	PostalCityID int NOT NULL,
+	CreditLimit decimal(18, 2) NULL,
+	AccountOpenedDate date NOT NULL,
+	StandardDiscountPercentage decimal(18, 3) NOT NULL,
+	IsStatementSent boolean NOT NULL,
+	IsOnCreditHold boolean NOT NULL,
+	PaymentDays int NOT NULL,
+	PhoneNumber varchar(20) NOT NULL,
+	FaxNumber varchar(20) NOT NULL,
+	DeliveryRun varchar(5) NULL,
+	RunPosition varchar(5) NULL,
+	WebsiteURL varchar(256) NOT NULL,
+	DeliveryAddressLine1 varchar(60) NOT NULL,
+	DeliveryAddressLine2 varchar(60) NULL,
+	DeliveryPostalCode varchar(10) NOT NULL,
+	DeliveryLocation geography NULL,
+	PostalAddressLine1 varchar(60) NOT NULL,
+	PostalAddressLine2 varchar(60) NULL,
+	PostalPostalCode varchar(10) NOT NULL,
+	LastEditedBy int NOT NULL,
+	ValidFrom TIMESTAMP_NTZ NOT NULL,
+	ValidTo TIMESTAMP_NTZ NOT NULL
+	)`}).execute(); 
+
+// Add fact column
+snowflake.createStatement({ sqlText: `
+    ALTER TABLE SalesCustomers
+      ADD COLUMN units_sold NUMBER`}).execute();
+
+return "Schema changes deployed successfully";
+$$;
